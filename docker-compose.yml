@@ -1,0 +1,72 @@
+version: '3'
+services:
+    nginx:
+        build: ./nginx
+        container_name: nginx
+        volumes:
+            - ./nginx/www:/var/www/nginx
+        networks:
+            - se_backend
+        depends_on:
+            - hbase
+            - grproxy
+            - gserve1
+            - gserve2
+
+    hbase:
+        build: ./hbase
+        container_name: hbase
+        networks:
+            se_backend:
+                aliases:
+                    - zookeeper
+        restart: on-failure
+        ports:
+            - 2181:2181
+            - 8080:8080
+            - 8085:8085
+            - 9095:9095
+            - 9090:9090
+            - 16000:16000
+            - 16010:16010
+            - 16201:16201
+            - 16301:16301   
+
+    grproxy:
+        build: ./grproxy
+        container_name: grproxy
+        networks:
+            - se_backend
+            - se_frontend
+        ports:
+            - 80:8080
+        depends_on:
+            - hbase
+
+    gserve1:
+        build: ./gserve
+        container_name: gserve1
+        depends_on:
+            - hbase
+            - grproxy
+        environment:
+            - name=gserve1
+        networks:
+            - se_backend
+
+    gserve2:
+        build: ./gserve
+        container_name: gserve2
+        depends_on:
+            - hbase
+            - grproxy
+        environment:
+            - name=gserve2
+        networks:
+            - se_backend
+
+networks:
+    se_backend:
+        driver: bridge
+    se_frontend:
+        driver: bridge
